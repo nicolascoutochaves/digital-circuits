@@ -1,0 +1,26 @@
+bin[0] = sw0;
+bin[1] = sw1;
+bin[2] = sw2;
+bin[3] = sw3;
+bin[4] = sw4;
+bin[5] = sw5;
+bin[6] = sw6;
+bin[7] = sw7;
+bin[8] = sw8;
+bin[9] = sw9;
+
+display[0] = segd0.a_on;
+display[1] = segd0.b_on;
+display[2] = segd0.c_on;
+display[3] = segd0.d_on;
+display[4] = segd0.e_on;
+display[5] = segd0.f_on;
+display[6] = segd0.g_on;
+
+display[7] = segd1.a_on;
+display[8] = segd1.b_on;
+display[9] = segd1.c_on;
+display[10] = segd1.d_on;
+display[11] = segd1.e_on;
+display[12] = segd1.f_on;
+display[13] = segd1.g_on;
