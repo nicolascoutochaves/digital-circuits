@@ -1,0 +1,20 @@
+a[0] = sw0;
+a[1] = sw1;
+a[2] = sw2;
+a[3] = sw3;
+
+b[0] = sw4;
+b[1] = sw5;
+b[2] = sw6;
+b[3] = sw7;
+
+cin = btn0;
+cout = led0;
+
+sevendisp[0] = segd0.a_on;
+sevendisp[1] = segd0.b_on;
+sevendisp[2] = segd0.c_on;
+sevendisp[3] = segd0.d_on;
+sevendisp[4] = segd0.e_on;
+sevendisp[5] = segd0.f_on;
+sevendisp[6] = segd0.g_on;
