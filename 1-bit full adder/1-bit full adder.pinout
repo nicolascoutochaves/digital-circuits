@@ -1,0 +1,12 @@
+a = sw0;
+b = sw1;
+
+cin = sw3;
+
+display[0] = segd0.a_on;
+display[1] = segd0.b_on;
+display[2] = segd0.c_on;
+display[3] = segd0.d_on;
+display[4] = segd0.e_on;
+display[5] = segd0.f_on;
+display[6] = segd0.g_on;
