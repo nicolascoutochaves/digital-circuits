@@ -1,0 +1,14 @@
+reset  =   sw9;
+up = sw8;
+clock  =   btn0;
+op0 = sw0;
+op1 = sw1;
+op2 = sw2;
+op3 = sw3;
+enPC = led0;
+selPC = led1;
+enREM = led2;
+write = led3;
+selMEM = led4;
+opULA = led5;
+enAC = led6;
