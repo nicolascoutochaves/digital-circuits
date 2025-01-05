@@ -1,17 +1,17 @@
 reset  =   sw9;
-up = sw8;
 clock  =   btn0;
-op0 = sw0;
-op1 = sw1;
-op2 = sw2;
-op3 = sw3;
-enPC = led0;
-selPC = led1;
-enREM = led2;
-write = led3;
+
+enPC = segd3.dp_on;
+selPC = led5;
 selMEM = led4;
-opALU = led5;
-enAC = led6;
+enREM = led3;
+write = led2;
+opALU = led1;
+enAC = led0;
+
+state[0] = led7;
+state[1] = led8;
+state[2] = led9;
 
 
 display0[0] = segd0.a_on;
@@ -30,4 +30,12 @@ display1[3] = segd1.d_on;
 display1[4] = segd1.e_on;
 display1[5] = segd1.f_on;
 display1[6] = segd1.g_on;
+
+display2[0] = segd2.a_on;
+display2[1] = segd2.b_on;
+display2[2] = segd2.c_on;
+display2[3] = segd2.d_on;
+display2[4] = segd2.e_on;
+display2[5] = segd2.f_on;
+display2[6] = segd2.g_on;
 
