@@ -10,5 +10,24 @@ selPC = led1;
 enREM = led2;
 write = led3;
 selMEM = led4;
-opULA = led5;
+opALU = led5;
 enAC = led6;
+
+
+display0[0] = segd0.a_on;
+display0[1] = segd0.b_on;
+display0[2] = segd0.c_on;
+display0[3] = segd0.d_on;
+display0[4] = segd0.e_on;
+display0[5] = segd0.f_on;
+display0[6] = segd0.g_on;
+
+
+display1[0] = segd1.a_on;
+display1[1] = segd1.b_on;
+display1[2] = segd1.c_on;
+display1[3] = segd1.d_on;
+display1[4] = segd1.e_on;
+display1[5] = segd1.f_on;
+display1[6] = segd1.g_on;
+
