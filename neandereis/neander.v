@@ -1,53 +1,93 @@
-module fsm (clock, reset, selPC, enREM, write, selMEM, opALU, enAC, enPC, display0, display1, display2, state);
-
+module fsm (clock, reset, selPC, enREM, write, selMEM, opALU, enAC, enPC, display0, display1, display2, display3, state, insw);
     input clock, reset;
     output selPC, enREM, write, selMEM, opALU, enAC, enPC;
     output [2:0] state;
     wire [2:0] next_state;
-    output [6:0] display0, display1, display2;
+    output [6:0] display0, display1, display2, display3;
     wire [7:0] wMEM128;
+    input [3:0] insw;
 
-    wire [7:0] DMout, EndMUXA, EndMUXB, EndMUXout, outACC;
+    wire [7:0] infsm;
+    buf (infsm[4], insw[0]);
+    buf (infsm[5], insw[1]);
+    buf (infsm[6], insw[2]);
+    buf (infsm[7], insw[3]);
+    buf (infsm[0], 1'b0);
+    buf (infsm[1], 1'b0);
+    buf (infsm[2], 1'b0);
+    buf (infsm[3], 1'b0);
 
-    ccnextstate calcnextstate(.memcontent(DMout) ,.state(state), .next_state(next_state));
-
-    reg3 regstate(.d(next_state), .clk(clock), .rst(reset), .q(state));
-
-    ccout calcout(.state(state), .memcontent(DMout), .selPC(selPC), .enREM(enREM), .write(write), .selMEM(selMEM), .opALU(opALU), .enAC(enAC), .enPC(enPC));
+    wire [7:0] OutMem, Qrem, DregPC, QregPC, EndMem, outALU, PCm1;
 
     wire [3:0] voided;
 
+    ccnextstate calcnextstate(.memcontent(OutMem) , .state(state), .next_state(next_state));
+
+    reg3 regstate(.d(state), .clk(clock), .rst(reset), .q(state));
+
+    ccout calcout(.state(state), .memcontent(OutMem), .selPC(selPC), .enREM(enREM), .write(write), .selMEM(selMEM), .opALU(opALU), .enAC(enAC), .enPC(enPC));
+
+
  
 
-    mux8 EndMUX(.a(EndMUXA), .b(EndMUXB), .s(selMEM), .y(EndMUXout));
+    mux8 AddrMUX(.a(Qrem), .b(QregPC), .s(selMEM), .y(EndMem));
     
-    reg8 REM(.d(DMout), .clk(clock), .rst(reset), .en(enREM), .q(EndMUXA));
+    reg8 REM(.d(OutMem), .clk(clock), .rst(reset), .en(enREM), .q(Qrem));
 
-    PC pc(.clk(clock), .rst(reset), .en(enPC), .sel(selPC), .endmem(DMout), .q(EndMUXB), .display(display2));
-    
-    memoria_pit mem(.write(write), .clk(clock), .rst(reset), .address(EndMUXout), .din(outACC), .dout(DMout), .oMem128(wMEM128));
+    mux8 muxselPC(.a(OutMem), .b(PCm1), .s(selPC), .y(DregPC));
+    PC pc(.d(DregPC), .clk(clock), .rst(reset), .en(enPC), .q(QregPC));
+    eightbitadder addpc(.a(QregPC), .b(8'b00000001), .cin(8'b00000000), .s(PCm1), .cout(voided[0]));
 
-    sevensegdecoder disp1(.nibble(wMEM128[0 +: 4]), .dispseg(display1));
+    memoria_pit mem(.write(write), .clk(clock), .rst(reset), .address(EndMem), .din(outALU), .dout(OutMem), .oMem128(wMEM128));
 
-    ALU alu(.a(DMout), .opALU(opALU), .enAC(enAC), .s(outACC), .cout(voided[1]), .clk(clock), .display0(display0));
+    sevensegdecoder disp1(.nibble(OutMem[0 +: 4]), .dispseg(display2));
+    sevensegdecoder disp2(.nibble(OutMem[4 +: 4]), .dispseg(display3));
+
+    ALU alu(.a(OutMem), .opALU(opALU), .enAC(enAC), .rst(reset), .s(outALU), .cout(voided[1]), .clk(clock), .display0(display0), .display1(display1));
     
 endmodule
 
-module PC (clk, rst, en, sel, endmem, q, display);
-    input [7:0] endmem;
-    wire [7:0] d;
-    output [7:0] q;
-    input clk, rst, en, sel;
-    wire [7:0] sum;
-    output [6:0] display;
+module ALU(a, opALU, s, enAC, cout, clk, rst, display0, display1);
+    input [7:0] a;
+    input opALU, clk, enAC, rst;
+    output [7:0] s;
+    output [6:0] display0, display1;
+    output cout;
+    wire [7:0] bypass;
+    wire [7:0] operandA;
 
-    wire voided;
+  /*   demux demux0(.a(a[0]), .s(opALU), .y0(bypass[0]), .y1(operandA[0]));
+    demux demux1(.a(a[1]), .s(opALU), .y0(bypass[1]), .y1(operandA[1]));
+    demux demux2(.a(a[2]), .s(opALU), .y0(bypass[2]), .y1(operandA[2]));
+    demux demux3(.a(a[3]), .s(opALU), .y0(bypass[3]), .y1(operandA[3]));
+    demux demux4(.a(a[4]), .s(opALU), .y0(bypass[4]), .y1(operandA[4]));
+    demux demux5(.a(a[5]), .s(opALU), .y0(bypass[5]), .y1(operandA[5]));
+    demux demux6(.a(a[6]), .s(opALU), .y0(bypass[6]), .y1(operandA[6]));
+    demux demux7(.a(a[7]), .s(opALU), .y0(bypass[7]), .y1(operandA[7])); */
 
-    sevensegdecoder disp(.nibble(q[0 +: 4]), .dispseg(display));
+    wire [7:0] outacc, outadder;
+    wire [7:0] test;
+    assign test = 8'b00000011;
+    demux8 demux0(.a(a), .sel(opALU), .y0(bypass), .y1(operandA));
+
+    eightbitadder adder0(.a(test), .b(s), .cin(1'b0), .s(outadder), .cout(cout));
+
+    reg8 acc(.d(outadder), .clk(clk), .rst(rst), .en(enAC), .q(outacc));
     
+    mux8 mux0(.a(bypass), .b(outacc), .s(opALU), .y(s));
+
+    sevensegdecoder disp0(.nibble(operandA[0 +: 4]), .dispseg(display0));
+    sevensegdecoder disp1(.nibble(bypass[0 +: 4]), .dispseg(display1));
+    
+endmodule
+
+module PC (d, clk, rst, en, q);
+    input [7:0] d;
+    output [7:0] q;
+    input clk, rst, en;
+    wire [7:0] sum;
     reg8 regpc(.d(d), .clk(clk), .rst(rst), .en(en), .q(q));
-    eightbitadder adder(.a(q), .b(8'b00000001), .cin(8'b00000000), .s(sum), .cout(voided));
-    mux8 muxselPC(.a(endmem), .b(sum), .s(sel), .y(d));
+    
 endmodule
 
 module ccout (state, memcontent, selPC, enREM, write, selMEM, opALU, enAC, enPC);
@@ -95,9 +135,10 @@ module ccnextstate(memcontent, state, next_state);
     buf(op2, memcontent[6]);
     buf(op1, memcontent[5]);
     buf(op0, memcontent[4]);
-    wire next_hlt, a0;
-    and (a0, op3, op2, op1, op0);
-    not (next_hlt, a0);
+
+    wire next_hlt, and_ops;
+    and (and_ops, op3, op2, op1, op0);
+    not (next_hlt, and_ops);
 
     wire nop1, nstate2, nstate1, nstate0;
     wire sumop, andop;
@@ -122,37 +163,7 @@ module ccnextstate(memcontent, state, next_state);
     and (next_state[2], w0, nop1, op0, next_hlt);
 endmodule
 
-module ALU(a, opALU, s, enAC, cout, clk, display0);
-    input [7:0] a;
-    input opALU, clk, enAC;
-    output [7:0] s;
-    output [6:0] display0;
-    output cout;
-    wire [7:0] bypass;
-    wire [7:0] operandA;
 
-    demux demux0(.a(a[0]), .s(opALU), .y0(bypass[0]), .y1(operandA[0]));
-    demux demux1(.a(a[1]), .s(opALU), .y0(bypass[1]), .y1(operandA[1]));
-    demux demux2(.a(a[2]), .s(opALU), .y0(bypass[2]), .y1(operandA[2]));
-    demux demux3(.a(a[3]), .s(opALU), .y0(bypass[3]), .y1(operandA[3]));
-    demux demux4(.a(a[4]), .s(opALU), .y0(bypass[4]), .y1(operandA[4]));
-    demux demux5(.a(a[5]), .s(opALU), .y0(bypass[5]), .y1(operandA[5]));
-    demux demux6(.a(a[6]), .s(opALU), .y0(bypass[6]), .y1(operandA[6]));
-    demux demux7(.a(a[7]), .s(opALU), .y0(bypass[7]), .y1(operandA[7]));
-
-
-    wire [7:0] outacc, outadder;
-
-    eightbitadder adder0(.a(operandA), .b(s), .cin(1'b0), .s(outadder), .cout(cout));
-
-    reg8 acc(.d(outadder), .clk(clk), .rst(1'b0), .en(enAC), .q(outacc));
-    
-
-    mux8 mux0(.a(bypass), .b(outacc), .s(opALU), .y(s));
-
-    sevensegdecoder disp0(.nibble(s[0 +: 4]), .dispseg(display0));
-    
-endmodule
 module reg3 (d, q, clk, rst);
     input [2:0] d;
     output [2:0] q;
@@ -203,6 +214,16 @@ module mux(a, b, s, y);
     or (y, y0, y1);
 endmodule
 
+module demux8(a, sel, y0, y1);
+    input [7:0] a;
+    input sel;
+    output [7:0] y0, y1;
+    wire notsel;
+    not (notsel, sel);
+    and (y0, a, notsel);
+    and (y1, a, sel);
+endmodule
+
 module demux(a, s, y0, y1);
     input a, s;
     output y0, y1;
@@ -218,7 +239,7 @@ module eightbitadder(a, b, cin, s, cout);
     output [7:0] s;
     output cout;
     wire c1, c2, c3, c4, c5, c6, c7;
-    fulladder fa0(.a(a[0]), .b(b[0]), .cin(cin), .s(s[0]), .cout(c1));
+    fulladder fand_ops(.a(a[0]), .b(b[0]), .cin(cin), .s(s[0]), .cout(c1));
     fulladder fa1(.a(a[1]), .b(b[1]), .cin(c1), .s(s[1]), .cout(c2));
     fulladder fa2(.a(a[2]), .b(b[2]), .cin(c2), .s(s[2]), .cout(c3));
     fulladder fa3(.a(a[3]), .b(b[3]), .cin(c3), .s(s[3]), .cout(c4));

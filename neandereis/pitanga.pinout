@@ -1,6 +1,11 @@
 reset  =   sw9;
 clock  =   btn0;
 
+insw[0] = sw0;
+insw[1] = sw1;
+insw[2] = sw2;
+insw[3] = sw3;
+
 enPC = segd3.dp_on;
 selPC = led5;
 selMEM = led4;
@@ -38,4 +43,12 @@ display2[3] = segd2.d_on;
 display2[4] = segd2.e_on;
 display2[5] = segd2.f_on;
 display2[6] = segd2.g_on;
+
+display3[0] = segd3.a_on;
+display3[1] = segd3.b_on;
+display3[2] = segd3.c_on;
+display3[3] = segd3.d_on;
+display3[4] = segd3.e_on;
+display3[5] = segd3.f_on;
+display3[6] = segd3.g_on;
 
