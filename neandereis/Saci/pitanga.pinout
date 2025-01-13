@@ -1,0 +1,60 @@
+clock  =   btn0;
+reset  =   btn1;
+
+
+//Mostra os sinais de controle que estao sendo utilizados no ciclo atual
+enPC = led9;
+selPC = led8;
+selMEM = led7;
+enREM = led6;
+write = led5;
+opALU = led4;
+enAC = led3;
+
+//Mostra o estado atual da maquina de estados
+state[0] = led0;
+state[1] = led1;
+state[2] = led2;
+
+//Mostra o Endereco de memoria atual
+display0[0] = segd0.a_on;
+display0[1] = segd0.b_on;
+display0[2] = segd0.c_on;
+display0[3] = segd0.d_on;
+display0[4] = segd0.e_on;
+display0[5] = segd0.f_on;
+display0[6] = segd0.g_on;
+
+End128_msb = segd0.dp_on;
+
+//Mostra o conteudo da parte baixa do end 128 (4 bits menos significativos)
+display1[0] = segd1.a_on;
+display1[1] = segd1.b_on;
+display1[2] = segd1.c_on;
+display1[3] = segd1.d_on;
+display1[4] = segd1.e_on;
+display1[5] = segd1.f_on;
+display1[6] = segd1.g_on;
+
+
+//4 primeiros bits do conteudo atual da memoria
+display2[0] = segd2.a_on;
+display2[1] = segd2.b_on;
+display2[2] = segd2.c_on;
+display2[3] = segd2.d_on;
+display2[4] = segd2.e_on;
+display2[5] = segd2.f_on;
+display2[6] = segd2.g_on;
+
+
+//Ultimos 4 bits do conteudo do end atual
+display3[0] = segd3.a_on;
+display3[1] = segd3.b_on;
+display3[2] = segd3.c_on;
+display3[3] = segd3.d_on;
+display3[4] = segd3.e_on;
+display3[5] = segd3.f_on;
+display3[6] = segd3.g_on;
+
+
+
