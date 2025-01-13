@@ -7,16 +7,17 @@ insw[2] = sw2;
 insw[3] = sw3;
 
 enPC = segd3.dp_on;
-selPC = led5;
-selMEM = led4;
-enREM = led3;
-write = led2;
-opALU = led1;
-enAC = led0;
 
-state[0] = led7;
-state[1] = led8;
-state[2] = led9;
+selPC = led9;
+selMEM = led8;
+enREM = led7;
+write = led6;
+opALU = led5;
+enAC = led4;
+
+state[0] = led0;
+state[1] = led1;
+state[2] = led2;
 
 
 display0[0] = segd0.a_on;

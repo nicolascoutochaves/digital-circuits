@@ -7,6 +7,9 @@ module fsm (clock, reset, selPC, enREM, write, selMEM, opALU, enAC, enPC, displa
     wire [7:0] wMEM128;
     input [3:0] insw;
 
+    wire z;
+    assign z = 1'b0;
+
     wire [7:0] infsm;
     buf (infsm[4], insw[0]);
     buf (infsm[5], insw[1]);
@@ -17,13 +20,12 @@ module fsm (clock, reset, selPC, enREM, write, selMEM, opALU, enAC, enPC, displa
     buf (infsm[2], 1'b0);
     buf (infsm[3], 1'b0);
 
-    wire [7:0] OutMem, Qrem, DregPC, QregPC, EndMem, outALU, PCm1;
+    wire [7:0] OutMem, Qrem, DregPC, QregPC, EndMem, PCm1, DregAC, QregAC;
 
     wire [3:0] voided;
 
     ccnextstate calcnextstate(.memcontent(OutMem) , .state(state), .next_state(next_state));
-
-    reg3 regstate(.d(state), .clk(clock), .rst(reset), .q(state));
+    reg3 regstate(.d(next_state), .clk(clock), .rst(reset), .q(state), .set(z), .en(1'b1));
 
     ccout calcout(.state(state), .memcontent(OutMem), .selPC(selPC), .enREM(enREM), .write(write), .selMEM(selMEM), .opALU(opALU), .enAC(enAC), .enPC(enPC));
 
@@ -32,61 +34,41 @@ module fsm (clock, reset, selPC, enREM, write, selMEM, opALU, enAC, enPC, displa
 
     mux8 AddrMUX(.a(Qrem), .b(QregPC), .s(selMEM), .y(EndMem));
     
-    reg8 REM(.d(OutMem), .clk(clock), .rst(reset), .en(enREM), .q(Qrem));
+    reg8 REM(.d(OutMem), .clk(clock), .rst(reset), .en(enREM), .q(Qrem), .set(z));
 
     mux8 muxselPC(.a(OutMem), .b(PCm1), .s(selPC), .y(DregPC));
-    PC pc(.d(DregPC), .clk(clock), .rst(reset), .en(enPC), .q(QregPC));
+    PC pc(.d(DregPC), .clk(clock), .rst(reset), .en(enPC), .q(QregPC), .set(z));
     eightbitadder addpc(.a(QregPC), .b(8'b00000001), .cin(8'b00000000), .s(PCm1), .cout(voided[0]));
 
-    memoria_pit mem(.write(write), .clk(clock), .rst(reset), .address(EndMem), .din(outALU), .dout(OutMem), .oMem128(wMEM128));
+    memoria_pit mem(.write(write), .clk(clock), .rst(reset), .address(EndMem), .din(QregAC), .dout(OutMem), .oMem128(wMEM128));
 
-    sevensegdecoder disp1(.nibble(OutMem[0 +: 4]), .dispseg(display2));
-    sevensegdecoder disp2(.nibble(OutMem[4 +: 4]), .dispseg(display3));
+    sevensegdecoder disp0(.nibble(QregPC[0 +: 4]), .dispseg(display0));
+    sevensegdecoder disp1(.nibble(QregAC[0 +: 4]), .dispseg(display1));
+    sevensegdecoder disp2(.nibble(OutMem[0 +: 4]), .dispseg(display2));
+    sevensegdecoder disp3(.nibble(OutMem[4 +: 4]), .dispseg(display3));
 
-    ALU alu(.a(OutMem), .opALU(opALU), .enAC(enAC), .rst(reset), .s(outALU), .cout(voided[1]), .clk(clock), .display0(display0), .display1(display1));
+    ALU alu(.b(QregAC), .a(OutMem), .opALU(opALU), .s(DregAC));
+    reg8 ACC(.d(DregAC), .clk(clock), .rst(reset), .en(enAC), .q(QregAC), .set(z));
     
 endmodule
 
-module ALU(a, opALU, s, enAC, cout, clk, rst, display0, display1);
-    input [7:0] a;
-    input opALU, clk, enAC, rst;
+module ALU(a, b, opALU, s);
+    input [7:0] a, b;
+    input opALU;
     output [7:0] s;
-    output [6:0] display0, display1;
-    output cout;
-    wire [7:0] bypass;
-    wire [7:0] operandA;
-
-  /*   demux demux0(.a(a[0]), .s(opALU), .y0(bypass[0]), .y1(operandA[0]));
-    demux demux1(.a(a[1]), .s(opALU), .y0(bypass[1]), .y1(operandA[1]));
-    demux demux2(.a(a[2]), .s(opALU), .y0(bypass[2]), .y1(operandA[2]));
-    demux demux3(.a(a[3]), .s(opALU), .y0(bypass[3]), .y1(operandA[3]));
-    demux demux4(.a(a[4]), .s(opALU), .y0(bypass[4]), .y1(operandA[4]));
-    demux demux5(.a(a[5]), .s(opALU), .y0(bypass[5]), .y1(operandA[5]));
-    demux demux6(.a(a[6]), .s(opALU), .y0(bypass[6]), .y1(operandA[6]));
-    demux demux7(.a(a[7]), .s(opALU), .y0(bypass[7]), .y1(operandA[7])); */
-
-    wire [7:0] outacc, outadder;
-    wire [7:0] test;
-    assign test = 8'b00000011;
-    demux8 demux0(.a(a), .sel(opALU), .y0(bypass), .y1(operandA));
-
-    eightbitadder adder0(.a(test), .b(s), .cin(1'b0), .s(outadder), .cout(cout));
-
-    reg8 acc(.d(outadder), .clk(clk), .rst(rst), .en(enAC), .q(outacc));
-    
-    mux8 mux0(.a(bypass), .b(outacc), .s(opALU), .y(s));
-
-    sevensegdecoder disp0(.nibble(operandA[0 +: 4]), .dispseg(display0));
-    sevensegdecoder disp1(.nibble(bypass[0 +: 4]), .dispseg(display1));
+    wire  [7:0] sum;
+    wire voided;
+    eightbitadder adder0(.a(a), .b(b), .cin(1'b0), .s(sum), .cout(voided));
+    mux8 seloutput(.a(a), .b(sum), .s(opALU), .y(s));
     
 endmodule
 
-module PC (d, clk, rst, en, q);
+module PC (d, clk, rst, en, q, set);
     input [7:0] d;
     output [7:0] q;
-    input clk, rst, en;
+    input clk, rst, en, set;
     wire [7:0] sum;
-    reg8 regpc(.d(d), .clk(clk), .rst(rst), .en(en), .q(q));
+    reg8 regpc(.d(d), .clk(clk), .rst(rst), .en(en), .q(q), .set(set));
     
 endmodule
 
@@ -164,28 +146,45 @@ module ccnextstate(memcontent, state, next_state);
 endmodule
 
 
-module reg3 (d, q, clk, rst);
+module reg3 (d, q, clk, rst, set, en);
     input [2:0] d;
     output [2:0] q;
-    input clk, rst;
-    ffdrse dff2(.d(d[2]), .clk(clk), .rst(rst), .set(1'b0), .enable(1'b1), .q(q[2]));
-    ffdrse dff1(.d(d[1]), .clk(clk), .rst(rst), .set(1'b0), .enable(1'b1), .q(q[1]));
-    ffdrse dff0(.d(d[0]), .clk(clk), .rst(rst), .set(1'b0), .enable(1'b1), .q(q[0]));
+    input clk, rst, set, en;
+    ffdrse dff2(.d(d[2]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[2]));
+    ffdrse dff1(.d(d[1]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[1]));
+    ffdrse dff0(.d(d[0]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[0]));
 endmodule
 
-module reg8 (d, q, clk, rst, en);
+module reg8(clk, rst, set, en, d, q);
+    input clk, rst, en, set;
+	 input [7:0] d;
+    output reg [7:0] q;
+
+    always@(posedge clk, posedge rst) begin
+        if(rst)
+            q <= 8'b00000000;
+        else if(en)
+            q <= d;
+        else if(set)
+            q <= 8'b11111111;
+        else
+            q <= q;
+    end
+endmodule
+
+/* module reg8 (d, q, clk, rst, en, set);
     input [7:0] d;
     output [7:0] q;
-    input clk, rst, en;
-    ffdrse dff7(.d(d[7]), .clk(clk), .rst(rst), .set(1'b0), .enable(en), .q(q[7]));
-    ffdrse dff6(.d(d[6]), .clk(clk), .rst(rst), .set(1'b0), .enable(en), .q(q[6]));
-    ffdrse dff5(.d(d[5]), .clk(clk), .rst(rst), .set(1'b0), .enable(en), .q(q[5]));
-    ffdrse dff4(.d(d[4]), .clk(clk), .rst(rst), .set(1'b0), .enable(en), .q(q[4]));
-    ffdrse dff3(.d(d[3]), .clk(clk), .rst(rst), .set(1'b0), .enable(en), .q(q[3]));
-    ffdrse dff2(.d(d[2]), .clk(clk), .rst(rst), .set(1'b0), .enable(en), .q(q[2]));
-    ffdrse dff1(.d(d[1]), .clk(clk), .rst(rst), .set(1'b0), .enable(en), .q(q[1]));
-    ffdrse dff0(.d(d[0]), .clk(clk), .rst(rst), .set(1'b0), .enable(en), .q(q[0]));
-endmodule
+    input clk, rst, en, set;
+    ffdrse dff7(.d(d[7]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[7]));
+    ffdrse dff6(.d(d[6]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[6]));
+    ffdrse dff5(.d(d[5]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[5]));
+    ffdrse dff4(.d(d[4]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[4]));
+    ffdrse dff3(.d(d[3]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[3]));
+    ffdrse dff2(.d(d[2]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[2]));
+    ffdrse dff1(.d(d[1]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[1]));
+    ffdrse dff0(.d(d[0]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[0]));
+endmodule */
 
 
 
@@ -307,7 +306,7 @@ module memoria_pit(
 
     rom_prog_pit rp(.address(address), .content(saida_rom));
 
-    reg8 r(.d(din), .q(saida_ram), .clk(clk), .rst(rst), .en(enable));
+    reg8 r(.d(din), .q(saida_ram), .clk(clk), .rst(rst), .en(enable), .set());
 
     mux8 mux(.a(saida_rom), .b(saida_ram), .s(address[7]), .y(dout));
 	//mux21_8b_pit m8b(.e0(saida_rom), .e1(saida_ram), .sel(address[7]), .saida(dout));

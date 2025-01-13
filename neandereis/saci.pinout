@@ -1,0 +1,54 @@
+//                                            (c) 2023 inPlace Design Automation
+// Descrição : arquivo de pinagem contendo o mapeamento do módulo counter2b para
+//             a placa T (T-board).
+//  MODULE PORT     BOARD COMPONENT
+    clk         =   btn0;
+    rst         =   sw9;
+
+// Mapeamento dos bits de saída do contador para os LEDs
+    oEA[0]      =   led0;
+    oEA[1]      =   led1;
+    oEA[2]      =   led2;
+
+    SelPC = led9;
+    SelMem = led8;
+    EnREM = led7;
+    Write = led6;
+    OpULA = led5;
+    EnAC = led4;
+
+// Mapeamento dos bits de saída do decodificador para o display de 7 segmentos
+    oEndMem_7s[0]      =   segd0.g_on;
+    oEndMem_7s[1]      =   segd0.f_on;
+    oEndMem_7s[2]      =   segd0.e_on;
+    oEndMem_7s[3]      =   segd0.d_on;
+    oEndMem_7s[4]      =   segd0.c_on;
+    oEndMem_7s[5]      =   segd0.b_on;
+    oEndMem_7s[6]      =   segd0.a_on;
+    oEndMem_MS         =   segd0.dp_on;
+
+    oMem128_7s[0]      =   segd1.g_on;
+    oMem128_7s[1]      =   segd1.f_on;
+    oMem128_7s[2]      =   segd1.e_on;
+    oMem128_7s[3]      =   segd1.d_on;
+    oMem128_7s[4]      =   segd1.c_on;
+    oMem128_7s[5]      =   segd1.b_on;
+    oMem128_7s[6]      =   segd1.a_on;
+
+    ContentMem0[0] = segd2.g_on;
+    ContentMem0[1] = segd2.f_on;
+    ContentMem0[2] = segd2.e_on;
+    ContentMem0[3] = segd2.d_on;
+    ContentMem0[4] = segd2.c_on;
+    ContentMem0[5] = segd2.b_on;
+    ContentMem0[6] = segd2.a_on;
+
+    ContentMem1[0] = segd3.g_on;
+    ContentMem1[1] = segd3.f_on;
+    ContentMem1[2] = segd3.e_on;
+    ContentMem1[3] = segd3.d_on;
+    ContentMem1[4] = segd3.c_on;
+    ContentMem1[5] = segd3.b_on;
+    ContentMem1[6] = segd3.a_on;
+
+
