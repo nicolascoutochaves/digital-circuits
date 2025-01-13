@@ -5,27 +5,28 @@ module fsm (clock, reset, selPC, enREM, write, selMEM, opALU, enAC, enPC, displa
     wire [2:0] next_state;
     output [6:0] display0, display1, display2, display3;
     wire [7:0] wMEM128;
-    input [3:0] insw;
+    input [7:0] insw;
 
     wire z;
     assign z = 1'b0;
 
-    wire [7:0] infsm;
-    buf (infsm[4], insw[0]);
-    buf (infsm[5], insw[1]);
-    buf (infsm[6], insw[2]);
-    buf (infsm[7], insw[3]);
-    buf (infsm[0], 1'b0);
-    buf (infsm[1], 1'b0);
-    buf (infsm[2], 1'b0);
-    buf (infsm[3], 1'b0);
+      wire [7:0] infsm;
+    buf (infsm[7], insw[7]);
+    buf (infsm[6], insw[6]);
+    buf (infsm[5], insw[5]);
+    buf (infsm[4], insw[4]);
+    buf (infsm[3], insw[3]);
+    buf (infsm[2], insw[2]);
+    buf (infsm[1], insw[1]);
+    buf (infsm[0], insw[0]);
+  
 
     wire [7:0] OutMem, Qrem, DregPC, QregPC, EndMem, PCm1, DregAC, QregAC;
 
     wire [3:0] voided;
 
-    ccnextstate calcnextstate(.memcontent(OutMem) , .state(state), .next_state(next_state));
-    reg3 regstate(.d(next_state), .clk(clock), .rst(reset), .q(state), .set(z), .en(1'b1));
+    ccnextstate calcnextstate(.memcontent(OutMem), .state(state), .next_state(next_state), .clk(clock), .rst(reset));
+    reg3 regstate (.d(next_state), .q(state), .clk(clock), .rst(reset), .set(1'b0), .en(1'b1));
 
     ccout calcout(.state(state), .memcontent(OutMem), .selPC(selPC), .enREM(enREM), .write(write), .selMEM(selMEM), .opALU(opALU), .enAC(enAC), .enPC(enPC));
 
@@ -33,17 +34,17 @@ module fsm (clock, reset, selPC, enREM, write, selMEM, opALU, enAC, enPC, displa
  
 
     mux8 AddrMUX(.a(Qrem), .b(QregPC), .s(selMEM), .y(EndMem));
-    
     reg8 REM(.d(OutMem), .clk(clock), .rst(reset), .en(enREM), .q(Qrem), .set(z));
 
     mux8 muxselPC(.a(OutMem), .b(PCm1), .s(selPC), .y(DregPC));
-    PC pc(.d(DregPC), .clk(clock), .rst(reset), .en(enPC), .q(QregPC), .set(z));
-    eightbitadder addpc(.a(QregPC), .b(8'b00000001), .cin(8'b00000000), .s(PCm1), .cout(voided[0]));
+    reg8 PC(.d(DregPC), .clk(clock), .rst(reset), .en(enPC), .q(QregPC), .set(z));
+    mais_um_pit addpc(.a(QregPC), .s(PCm1));
+    //eightbitadder addpc(.a(QregPC), .b(8'b00000001), .cin(8'b00000000), .s(PCm1), .cout(voided[0]));
 
     memoria_pit mem(.write(write), .clk(clock), .rst(reset), .address(EndMem), .din(QregAC), .dout(OutMem), .oMem128(wMEM128));
 
-    sevensegdecoder disp0(.nibble(QregPC[0 +: 4]), .dispseg(display0));
-    sevensegdecoder disp1(.nibble(QregAC[0 +: 4]), .dispseg(display1));
+    sevensegdecoder disp0(.nibble(EndMem[0 +: 4]), .dispseg(display0));
+    sevensegdecoder disp1(.nibble(wMEM128[0 +: 4]), .dispseg(display1));
     sevensegdecoder disp2(.nibble(OutMem[0 +: 4]), .dispseg(display2));
     sevensegdecoder disp3(.nibble(OutMem[4 +: 4]), .dispseg(display3));
 
@@ -51,72 +52,105 @@ module fsm (clock, reset, selPC, enREM, write, selMEM, opALU, enAC, enPC, displa
     reg8 ACC(.d(DregAC), .clk(clock), .rst(reset), .en(enAC), .q(QregAC), .set(z));
     
 endmodule
-
-module ALU(a, b, opALU, s);
-    input [7:0] a, b;
-    input opALU;
-    output [7:0] s;
-    wire  [7:0] sum;
-    wire voided;
-    eightbitadder adder0(.a(a), .b(b), .cin(1'b0), .s(sum), .cout(voided));
-    mux8 seloutput(.a(a), .b(sum), .s(opALU), .y(s));
-    
+module mais_um_pit(a, s);
+	
+    input [7:0]	a;
+    output[7:0]	s;
+	 
+	 assign s = a+1;
+	 
+	 
 endmodule
 
-module PC (d, clk, rst, en, q, set);
-    input [7:0] d;
-    output [7:0] q;
-    input clk, rst, en, set;
-    wire [7:0] sum;
-    reg8 regpc(.d(d), .clk(clk), .rst(rst), .en(en), .q(q), .set(set));
-    
-endmodule
 
-module ccout (state, memcontent, selPC, enREM, write, selMEM, opALU, enAC, enPC);
-    input [2:0] state;
-    input [7:0] memcontent;
-    output selPC, enREM, write, selMEM, opALU, enAC, enPC;
-    wire op3, op2, op1, op0;
-    buf(op3, memcontent[7]);
-    buf(op2, memcontent[6]);
-    buf(op1, memcontent[5]);
-    buf(op0, memcontent[4]);
-
-    wire notstate1notstate0;
-    wire nstate2, nstate1, nstate0; 
-    not (nstate2, state[2]);
-    not (nstate1, state[1]);
-    not (nstate0, state[0]);
-
-
-    nand(enPC, op3, op2, op1, op0); //enPC
-
-    and (notstate1notstate0, nstate1, nstate0); //selPC
-    or (selPC, notstate1notstate0, nstate2);
-
-    and (enREM, nstate2, nstate1, state[0]); //enREM
-
-    and (write, state[2], nstate1, nstate0); //write
-
-    and (selMEM, nstate2, nstate1); //selMEM
-
-    and (opALU, nstate2, state[1], state[0]); //opALU
-
-    and (enAC, nstate2, state[1]); //enAC
-
-
-endmodule
-
-module ccnextstate(memcontent, state, next_state);
+module ccnextstate(memcontent, state, next_state, clk, rst);
     input [7 : 0] memcontent;
     input [2:0] state;
     output [2:0] next_state;
-
+    input clk, rst;
     wire op3, op2, op1, op0;
-    buf(op3, memcontent[7]);
+   
+    wire [1:0] prev_state;
+    wire [3:0] opcode;
+    assign opcode = memcontent[7:4];
+    wire enable;
+    nor (enable, state[2], state[1], state[0]);
+
+    wire [1:0] decoded_state;
+    //decoder prev_state_decode(.opcode(opcode), .decoded_state(decoded_state));
+    //reg2 prev_state_reg(.d(decoded_state), .q(prev_state), .clk(clk), .rst(rst), .set(1'b0), .en(enable));
+
+    trad_inst_pit tradutor(.clk(clk), .enable(enable), .inst_in(opcode), .inst_out(prev_state));
+
+    wire A, B, C, D, E, nA, nB, nC, nD, nE;
+    buf (A, prev_state[1]);
+    buf (B, prev_state[0]);
+    buf (C, state[2]);
+    buf (D, state[1]);
+    buf (E, state[0]);
+
+    not (nA, A);
+    not (nB, B);
+    not (nC, C);
+    not (nD, D);
+    not (nE, E);
+
+    wire xorAB, AB, sumxorAB;
+    wire andnExorAB;
+    xor (xorAB, A, B);
+    and (AB, A, B);
+    and (andnExorAB, xorAB, nE);
+    or (sumxorAB, AB, andnExorAB);
+    and (next_state[0], nC, nD, sumxorAB);
+    and (next_state[1], A, nC, nD, E);
+    and (next_state[2], nA, B, nC, nD, E);
+
+    
+    /* 
+    wire [3:0] inst_in;
+    wire [1:0] inst_temp;
+    assign inst_in = {memcontent[7], memcontent[6], memcontent[5], memcontent[4]};
+    trad_inst_pit tradutor(.clk(clk), .enable(enable), .inst_in(inst_in), .inst_out(inst_temp));
+    wire [4:0] entradas_cc;
+    assign entradas_cc [4:3] = inst_temp;
+    assign entradas_cc [2:0] = state;
+
+    assign next_state =
+		//HLT 00
+                (entradas_cc == 5'b00000)  ?   3'b000:
+                (entradas_cc == 5'b00001)  ?   3'b000: 
+                (entradas_cc == 5'b00010)  ?   3'b000: 
+		(entradas_cc == 5'b00011)  ?   3'b000:
+                (entradas_cc == 5'b00100)  ?   3'b000: 
+		//STA 01
+		(entradas_cc == 5'b01000)  ?   3'b001:
+                (entradas_cc == 5'b01001)  ?   3'b100: 
+                (entradas_cc == 5'b01010)  ?   3'b000: 
+		(entradas_cc == 5'b01011)  ?   3'b000:
+                (entradas_cc == 5'b01100)  ?   3'b000: 
+		//LDA 10
+		(entradas_cc == 5'b10000)  ?   3'b001:
+                (entradas_cc == 5'b10001)  ?   3'b010: 
+                (entradas_cc == 5'b10010)  ?   3'b000: 
+		(entradas_cc == 5'b10011)  ?   3'b000:
+                (entradas_cc == 5'b10100)  ?   3'b000: 
+		//ADD 11
+		(entradas_cc == 5'b11000)  ?   3'b001:
+                (entradas_cc == 5'b11001)  ?   3'b011: 
+                (entradas_cc == 5'b11010)  ?   3'b000: 
+		(entradas_cc == 5'b11011)  ?   3'b000:
+                (entradas_cc == 5'b11100)  ?   3'b000: 
+                //caso default
+                3'b101; //caso default para tudo */
+                
+
+ 
+   /*  buf(op3, memcontent[7]);
     buf(op2, memcontent[6]);
     buf(op1, memcontent[5]);
     buf(op0, memcontent[4]);
+
+
 
     wire next_hlt, and_ops;
     and (and_ops, op3, op2, op1, op0);
@@ -142,9 +176,150 @@ module ccnextstate(memcontent, state, next_state);
 
     and (next_state[1], w0, op1, next_hlt);
 
-    and (next_state[2], w0, nop1, op0, next_hlt);
+    and (next_state[2], w0, nop1, op0, next_hlt); */
+
+    /* wire next_hlt, and_ops;
+    and (and_ops, op3, op2, op1, op0);
+    not (next_hlt, and_ops);
+
+    wire nop1, nstate2, nstate1, nstate0;
+    wire sumop, andop;
+    not (nop1, op1);
+    not (nstate2, state[2]);
+    not (nstate1, state[1]);
+    not (nstate0, state[0]);
+    or (sumop, op1, op0);
+    and (andop, op1, op0);
+
+    wire w0; // and ntate2, nstate1, state0
+    and (w0, nstate2, nstate1, state[0]);
+
+    wire next0, next0_1;
+    and (next0, andop, w0, next_hlt);
+    and (next0_1, sumop, nstate2, nstate1, nstate0, next_hlt);
+
+    or (next_state[0], next0, next0_1);
+
+    and (next_state[1], w0, op1, next_hlt);
+
+    and (next_state[2], w0, nop1, op0, next_hlt);  */
+
+   
 endmodule
 
+module decoder (opcode, decoded_state);
+    input [3:0] opcode;
+    output [1:0] decoded_state;
+    assign decoded_state =
+        (opcode == 4'b0000) ? 2'b00: //HLT
+        (opcode == 4'b0001) ? 2'b01: //STA
+        (opcode == 4'b0010) ? 2'b10: //LDA
+        (opcode == 4'b0011) ? 2'b11: //ADD
+        2'b00; //Caso default, mapeado para HLT
+endmodule
+
+module trad_inst_pit(clk, enable, inst_in, inst_out);
+	 input clk;
+	 input enable;
+    input [3:0]	inst_in;
+    output[1:0]	inst_out;
+	 
+	 wire [1:0] inst_temp_variavel;
+	 wire [1:0] inst_temp_registrado;
+	 reg [1:0] inst_reg; 	
+// Descrição da arquitetura
+    assign inst_temp_variavel =
+                (inst_in == 4'b1111)  ?   2'b00: //HLT
+                (inst_in == 4'b0001)  ?   2'b01: //STA
+                (inst_in == 4'b0010)  ?   2'b10: //LDA
+					 (inst_in == 4'b0011)  ?   2'b11: //ADD
+                                          2'b00; //Caso default, mapeado para HLT
+	assign inst_temp_registrado=inst_reg;												
+ 		
+	assign inst_out =
+	  (enable) ? inst_temp_variavel : inst_temp_registrado;
+														
+										
+	always@(posedge clk) begin
+       if (enable)
+            inst_reg <= inst_temp_variavel;   // 
+   end	
+
+
+														
+endmodule
+
+module ccout (state, memcontent, selPC, enREM, write, selMEM, opALU, enAC, enPC);
+    input [2:0] state;
+    input [7:0] memcontent;
+    output selPC, enREM, write, selMEM, opALU, enAC, enPC;
+    wire op3, op2, op1, op0;
+    
+    buf(op3, memcontent[7]);
+    buf(op2, memcontent[6]);
+    buf(op1, memcontent[5]);
+    buf(op0, memcontent[4]); 
+ 
+/*     buf(op3, memcontent[7]);
+    buf(op2, memcontent[6]);
+    buf(op1, memcontent[5]);
+    buf(op0, memcontent[4]);  */
+
+/*     assign op3 = 1'b0;
+    assign op2 = 1'b0;
+    assign op1 = 1'b1;
+    assign op0 = 1'b1;
+ */
+
+
+    wire notstate1notstate0;
+    wire nstate2, nstate1, nstate0; 
+    not (nstate2, state[2]);
+    not (nstate1, state[1]);
+    not (nstate0, state[0]);
+
+    wire nandops;
+    and(nandops, op3, op2, op1, op0); //enPC
+    wire andstates;
+    and(andstates, nstate2, nstate1);
+    xor (enPC, nandops, andstates);
+
+    and (notstate1notstate0, nstate1, nstate0); //selPC
+    or (selPC, notstate1notstate0, nstate2);
+
+    and (enREM, nstate2, nstate1, state[0]); //enREM
+
+    and (write, state[2], nstate1, nstate0); //write
+
+    and (selMEM, nstate2, nstate1); //selMEM
+
+    and (opALU, nstate2, state[1], state[0]); //opALU
+
+    and (enAC, nstate2, state[1]); //enAC
+
+
+endmodule
+
+
+
+module ALU(a, b, opALU, s);
+    input [7:0] a, b;
+    input opALU;
+    output [7:0] s;
+    wire  [7:0] sum;
+    wire voided;
+    eightbitadder adder0(.a(a), .b(b), .cin(1'b0), .s(sum), .cout(voided));
+    mux8 seloutput(.a(a), .b(sum), .s(opALU), .y(s));
+    
+endmodule
+
+module reg2 (d, q, clk, rst, set, en);
+    input [1:0] d;
+    output [1:0] q;
+    input clk, rst, set, en;
+    ffdrse dff1(.d(d[1]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[1]));
+    ffdrse dff0(.d(d[0]), .clk(clk), .rst(rst), .set(set), .enable(en), .q(q[0]));
+endmodule
 
 module reg3 (d, q, clk, rst, set, en);
     input [2:0] d;

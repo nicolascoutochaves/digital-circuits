@@ -5,6 +5,11 @@ insw[0] = sw0;
 insw[1] = sw1;
 insw[2] = sw2;
 insw[3] = sw3;
+insw[4] = sw4;
+insw[5] = sw5;
+insw[6] = sw6;
+insw[7] = sw7;
+
 
 enPC = segd3.dp_on;
 
@@ -52,4 +57,6 @@ display3[3] = segd3.d_on;
 display3[4] = segd3.e_on;
 display3[5] = segd3.f_on;
 display3[6] = segd3.g_on;
+
+
 
