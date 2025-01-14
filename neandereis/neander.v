@@ -1,11 +1,11 @@
-// Nicolas Chaves - Matrícula 316035
+// Nicolas Chaves - MatrÃ­cula 316035
 
 //Tentei construir tudo do zero, exceto o tradutor e a parte da memoria.
 //Fui olhando como era a organizacao nos slides e tentando reproduzir o que estava la.
 //Tambem fui refletindo sobre os estados e o que deveria acontecer em cada um deles.
 //Deu muito mais trabalho que simplesmente substituir as tabelas verdades, mas valeu a pena pelo aprendizado.
-//A parte que mais me deu trabalho foi o tradutor, que nao achei que fosse necessário até perceber que precisava armazenar o estado anterior para saber o que fazer após buscar o imediato, pois sempre que eu executava, o estado "LDA" era perdido apos a busca do imediato "7" e voltava para o estado "000", em vez de ir pro estado "010".
-//Porém agora tudo está funcionando 100%
+//A parte que mais me deu trabalho foi o tradutor, que nao achei que fosse necessÃ¡rio atÃ© perceber que precisava armazenar o estado anterior para saber o que fazer apÃ³s buscar o imediato, pois sempre que eu executava, o estado "LDA" era perdido apos a busca do imediato "7" e voltava para o estado "000", em vez de ir pro estado "010".
+//PorÃ©m agora tudo estÃ¡ funcionando 100%
 
 //Maquina que controla todo o processador
 module fsm (clock, reset, selPC, enREM, write, selMEM, opALU, enAC, enPC, display0, display1, display2, display3, state, End128_msb);
@@ -22,7 +22,7 @@ module fsm (clock, reset, selPC, enREM, write, selMEM, opALU, enAC, enPC, displa
 
     wire [7:0] OutMem, Qrem, DregPC, QregPC, EndMem, PCm1, DregAC, QregAC;
 
-    wire voided; //manda alguma saida para o além
+    wire voided; //manda alguma saida para o alÃ©m
 
 
     //Estados do processador
@@ -92,15 +92,16 @@ module ccnextstate(memcontent, state, next_state, clk, rst);
     not (nD, D);
     not (nE, E);
 
-    wire xorAB, AB, sumxorAB;
-    wire andnExorAB;
-    xor (xorAB, A, B);
-    and (AB, A, B);
-    and (andnExorAB, xorAB, nE);
-    or (sumxorAB, AB, andnExorAB);
-    and (next_state[0], nC, nD, sumxorAB);
+    and (next_state[2],nA,B,nC,nD,E );
     and (next_state[1], A, nC, nD, E);
-    and (next_state[2], nA, B, nC, nD, E);
+
+    wire abcd, sumAB;
+    or(sumAB, A,B);
+    and(abcd,A,B,nC,nD);
+    wire andabcde;
+    and(andabcde, sumAB,nC,nD,nE);
+
+    or (next_state[0],andabcde, abcd);
    
 endmodule
 
@@ -114,7 +115,7 @@ module trad_inst_pit(clk, enable, inst_in, inst_out);
     wire [1:0] inst_temp_variavel;
     wire [1:0] inst_temp_registrado;
     reg [1:0] inst_reg; 	
-    // Descrição da arquitetura
+    // DescriÃ§Ã£o da arquitetura
     assign inst_temp_variavel =
             (inst_in == 4'b1111)  ?   2'b00: //HLT
             (inst_in == 4'b0001)  ?   2'b01: //STA
@@ -187,7 +188,7 @@ module ALU(a, b, opALU, s);
     input opALU;
     output [7:0] s;
     wire  [7:0] sum;
-    wire voided; //Serve para mandar alguma saída para o além
+    wire voided; //Serve para mandar alguma saÃ­da para o alÃ©m
 
     eightbitadder adder0(.a(a), .b(b), .cin(1'b0), .s(sum), .cout(voided));
     //Mux para saber se deve passar direto pela ALU
@@ -308,7 +309,7 @@ endmodule
 module ffdrse(d, clk, rst, set, enable, q);
 // Sinais de Controle    
 input       d;          // entrada D    
-input       clk;        // relógio do sistema (clock)    
+input       clk;        // relÃ³gio do sistema (clock)    
 input       rst;        // reset, zera saida q    
 input       set;        // set, seta a saida para 1    
 input       enable;        // habilita o relogio       
@@ -389,4 +390,3 @@ module rom_prog_pit(
    or(content[7], minterm[5], minterm[6]);
  
 endmodule
-
